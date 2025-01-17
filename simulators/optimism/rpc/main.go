@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/hive/hivesim"
+	"github.com/ethereum/hive/optimism"
 )
 
 var (
@@ -163,22 +166,22 @@ interacting with one.`[1:],
 // runAllTests runs the tests against a client instance.
 // Most tests simply wait for tx inclusion in a block so we can run many tests concurrently.
 func runAllTests(t *hivesim.T, c *hivesim.Client, clientName string) {
-	// ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	// defer cancel()
-	// d := optimism.Devnet{
-	// 	T:     t,
-	// 	Nodes: make(map[string]*hivesim.ClientDefinition),
-	// 	Ctx:   ctx,
-	// }
-	// d.Start()
-	// d.Wait()
-	// d.DeployL1()
-	// d.InitL2()
-	// d.StartL2()
-	// d.InitOp()
-	// d.StartOp()
-	// d.StartL2OS()
-	// d.StartBSS()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	d := optimism.Devnet{
+		T:     t,
+		Nodes: make(map[string]*hivesim.ClientDefinition),
+		Ctx:   ctx,
+	}
+	d.Start()
+	d.Wait()
+	d.DeployL1()
+	d.InitL2()
+	d.StartL2()
+	d.InitOp()
+	d.StartOp()
+	d.StartL2OS()
+	d.StartBSS()
 
 	vault := newVault()
 
