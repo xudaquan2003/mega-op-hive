@@ -7,22 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum/go-ethereum"
+	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
-)
-
-var (
-	// parameters used for signing transactions
-	chainID  = big.NewInt(901)
-	gasPrice = big.NewInt(30 * params.GWei)
-
-	// would be nice to use a networkID that's different from chainID,
-	// but some clients don't support the distinction properly.
-	networkID = big.NewInt(901)
 )
 
 var (
@@ -144,11 +134,102 @@ func estimateGasTest(t *TestEnv) {
 	}
 }
 
+// balanceAndNonceAtTest creates a new account and transfers funds to it.
+// It then tests if the balance and nonce of the sender and receiver
+// address are updated correct.
+func balanceAndNonceAtTest(t *TestEnv) {
+	var (
+		sourceAddr  = t.Vault.createAccount(t, big.NewInt(params.Ether))
+		sourceNonce = uint64(0)
+		targetAddr  = t.Vault.createAccount(t, nil)
+	)
+
+	// Get current balance
+	sourceAddressBalanceBefore, err := t.Eth.BalanceAt(t.Ctx(), sourceAddr, nil)
+	if err != nil {
+		t.Fatalf("Unable to retrieve balance: %v", err)
+	}
+
+	expected := big.NewInt(params.Ether)
+	if sourceAddressBalanceBefore.Cmp(expected) != 0 {
+		t.Errorf("Expected balance %d, got %d", expected, sourceAddressBalanceBefore)
+	}
+
+	nonceBefore, err := t.Eth.NonceAt(t.Ctx(), sourceAddr, nil)
+	if err != nil {
+		t.Fatalf("Unable to determine nonce: %v", err)
+	}
+	if nonceBefore != sourceNonce {
+		t.Fatalf("Invalid nonce, want %d, got %d", sourceNonce, nonceBefore)
+	}
+
+	// send 1234 wei to target account and verify balances and nonces are updated
+	var (
+		amount   = big.NewInt(1234)
+		gasLimit = uint64(50000)
+	)
+	rawTx := types.NewTransaction(sourceNonce, targetAddr, amount, gasLimit, gasPrice, nil)
+	valueTx, err := t.Vault.signTransaction(sourceAddr, rawTx)
+	if err != nil {
+		t.Fatalf("Unable to sign value tx: %v", err)
+	}
+	sourceNonce++
+
+	t.Logf("BalanceAt: send %d wei from 0x%x to 0x%x in 0x%x", valueTx.Value(), sourceAddr, targetAddr, valueTx.Hash())
+	if err := t.Eth.SendTransaction(t.Ctx(), valueTx); err != nil {
+		t.Fatalf("Unable to send transaction: %v", err)
+	}
+
+	var receipt *types.Receipt
+	for {
+		receipt, err = t.Eth.TransactionReceipt(t.Ctx(), valueTx.Hash())
+		if receipt != nil {
+			break
+		}
+		if err != ethereum.NotFound {
+			t.Fatalf("Could not fetch receipt for 0x%x: %v", valueTx.Hash(), err)
+		}
+		time.Sleep(time.Second)
+	}
+
+	// ensure balances have been updated
+	accountBalanceAfter, err := t.Eth.BalanceAt(t.Ctx(), sourceAddr, nil)
+	if err != nil {
+		t.Fatalf("Unable to retrieve balance: %v", err)
+	}
+	balanceTargetAccountAfter, err := t.Eth.BalanceAt(t.Ctx(), targetAddr, nil)
+	if err != nil {
+		t.Fatalf("Unable to retrieve balance: %v", err)
+	}
+
+	// expected balance is previous balance - tx amount - tx fee (gasUsed * gasPrice)
+	exp := new(big.Int).Set(sourceAddressBalanceBefore)
+	exp.Sub(exp, amount)
+	exp.Sub(exp, new(big.Int).Mul(big.NewInt(int64(receipt.GasUsed)), valueTx.GasPrice()))
+
+	if exp.Cmp(accountBalanceAfter) != 0 {
+		t.Errorf("Expected sender account to have a balance of %d, got %d", exp, accountBalanceAfter)
+	}
+	if balanceTargetAccountAfter.Cmp(amount) != 0 {
+		t.Errorf("Expected new account to have a balance of %d, got %d", valueTx.Value(), balanceTargetAccountAfter)
+	}
+
+	// ensure nonce is incremented by 1
+	nonceAfter, err := t.Eth.NonceAt(t.Ctx(), sourceAddr, nil)
+	if err != nil {
+		t.Fatalf("Unable to determine nonce: %v", err)
+	}
+	expectedNonce := nonceBefore + 1
+	if expectedNonce != nonceAfter {
+		t.Fatalf("Invalid nonce, want %d, got %d", expectedNonce, nonceAfter)
+	}
+}
+
 // genesisByHash fetches the known genesis header and compares
 // it against the genesis file to determine if block fields are
 // returned correct.
 func genesisHeaderByHashTest(t *TestEnv) {
-	gblock := t.LoadGenesis()
+	gblock := loadGenesis()
 
 	headerByHash, err := t.Eth.HeaderByHash(t.Ctx(), gblock.Hash())
 	if err != nil {
@@ -163,7 +244,7 @@ func genesisHeaderByHashTest(t *TestEnv) {
 // it against the genesis file to determine if block fields are
 // returned correct.
 func genesisHeaderByNumberTest(t *TestEnv) {
-	gblock := t.LoadGenesis()
+	gblock := loadGenesis()
 
 	headerByNum, err := t.Eth.HeaderByNumber(t.Ctx(), big0)
 	if err != nil {
@@ -177,7 +258,7 @@ func genesisHeaderByNumberTest(t *TestEnv) {
 // genesisBlockByHashTest fetched the known genesis block and compares it against
 // the genesis file to determine if block fields are returned correct.
 func genesisBlockByHashTest(t *TestEnv) {
-	gblock := t.LoadGenesis()
+	gblock := loadGenesis()
 
 	blockByHash, err := t.Eth.BlockByHash(t.Ctx(), gblock.Hash())
 	if err != nil {
@@ -192,7 +273,7 @@ func genesisBlockByHashTest(t *TestEnv) {
 // that is known through the genesis.json file and tests if block
 // fields matches the fields defined in the genesis file.
 func genesisBlockByNumberTest(t *TestEnv) {
-	gblock := t.LoadGenesis()
+	gblock := loadGenesis()
 
 	blockByNum, err := t.Eth.BlockByNumber(t.Ctx(), big0)
 	if err != nil {
@@ -296,7 +377,7 @@ func deployContractTest(t *TestEnv) {
 	var contractAddress common.Address
 	receipt, err := waitForTxConfirmations(t, deployTx.Hash(), 5)
 	if err != nil {
-		t.Fatalf("Unable to retrieve receipt %v: %v", deployTx.Hash(), err)
+		t.Fatalf("Unable to retrieve receipt: %v", err)
 	}
 
 	// ensure receipt has the expected address
@@ -367,7 +448,7 @@ func deployContractOutOfGasTest(t *TestEnv) {
 	// Wait for the transaction receipt.
 	receipt, err := waitForTxConfirmations(t, deployTx.Hash(), 5)
 	if err != nil {
-		t.Fatalf("unable to fetch tx receipt %v: %v", deployTx.Hash(), err)
+		t.Fatalf("unable to fetch tx receipt: %v", err)
 	}
 	// Check receipt fields.
 	if receipt.Status != types.ReceiptStatusFailed {
@@ -421,7 +502,7 @@ func receiptTest(t *TestEnv) {
 	// wait for transaction
 	receipt, err := waitForTxConfirmations(t, tx.Hash(), 0)
 	if err != nil {
-		t.Fatalf("Unable to retrieve tx receipt %v: %v", tx.Hash(), err)
+		t.Fatalf("Unable to retrieve tx receipt: %v", err)
 	}
 	// validate receipt fields
 	if receipt.TxHash != tx.Hash() {
@@ -680,97 +761,6 @@ func logSubscriptionTest(t *TestEnv) {
 	}
 
 	validatePredeployContractLogs(t, tx, fetchedLogs, arg0, arg1)
-}
-
-// balanceAndNonceAtTest creates a new account and transfers funds to it.
-// It then tests if the balance and nonce of the sender and receiver
-// address are updated correct.
-func balanceAndNonceAtTest(t *TestEnv) {
-	var (
-		sourceAddr  = t.Vault.createAccount(t, big.NewInt(params.Ether))
-		sourceNonce = uint64(0)
-		targetAddr  = t.Vault.createAccount(t, nil)
-	)
-
-	// Get current balance
-	sourceAddressBalanceBefore, err := t.Eth.BalanceAt(t.Ctx(), sourceAddr, nil)
-	if err != nil {
-		t.Fatalf("Unable to retrieve balance: %v", err)
-	}
-
-	expected := big.NewInt(params.Ether)
-	if sourceAddressBalanceBefore.Cmp(expected) != 0 {
-		t.Errorf("Expected balance %d, got %d", expected, sourceAddressBalanceBefore)
-	}
-
-	nonceBefore, err := t.Eth.NonceAt(t.Ctx(), sourceAddr, nil)
-	if err != nil {
-		t.Fatalf("Unable to determine nonce: %v", err)
-	}
-	if nonceBefore != sourceNonce {
-		t.Fatalf("Invalid nonce, want %d, got %d", sourceNonce, nonceBefore)
-	}
-
-	// send 1234 wei to target account and verify balances and nonces are updated
-	var (
-		amount   = big.NewInt(1234)
-		gasLimit = uint64(50000)
-	)
-	rawTx := types.NewTransaction(sourceNonce, targetAddr, amount, gasLimit, gasPrice, nil)
-	valueTx, err := t.Vault.signTransaction(sourceAddr, rawTx)
-	if err != nil {
-		t.Fatalf("Unable to sign value tx: %v", err)
-	}
-	sourceNonce++
-
-	t.Logf("BalanceAt: send %d wei from 0x%x to 0x%x in 0x%x", valueTx.Value(), sourceAddr, targetAddr, valueTx.Hash())
-	if err := t.Eth.SendTransaction(t.Ctx(), valueTx); err != nil {
-		t.Fatalf("Unable to send transaction: %v", err)
-	}
-
-	var receipt *types.Receipt
-	for {
-		receipt, err = t.Eth.TransactionReceipt(t.Ctx(), valueTx.Hash())
-		if receipt != nil {
-			break
-		}
-		if err != ethereum.NotFound {
-			t.Fatalf("Could not fetch receipt for 0x%x: %v", valueTx.Hash(), err)
-		}
-		time.Sleep(time.Second)
-	}
-
-	// ensure balances have been updated
-	accountBalanceAfter, err := t.Eth.BalanceAt(t.Ctx(), sourceAddr, nil)
-	if err != nil {
-		t.Fatalf("Unable to retrieve balance: %v", err)
-	}
-	balanceTargetAccountAfter, err := t.Eth.BalanceAt(t.Ctx(), targetAddr, nil)
-	if err != nil {
-		t.Fatalf("Unable to retrieve balance: %v", err)
-	}
-
-	// expected balance is previous balance - tx amount - tx fee (gasUsed * gasPrice)
-	exp := new(big.Int).Set(sourceAddressBalanceBefore)
-	exp.Sub(exp, amount)
-	exp.Sub(exp, new(big.Int).Mul(big.NewInt(int64(receipt.GasUsed)), valueTx.GasPrice()))
-
-	if exp.Cmp(accountBalanceAfter) != 0 {
-		t.Errorf("Expected sender account to have a balance of %d, got %d", exp, accountBalanceAfter)
-	}
-	if balanceTargetAccountAfter.Cmp(amount) != 0 {
-		t.Errorf("Expected new account to have a balance of %d, got %d", valueTx.Value(), balanceTargetAccountAfter)
-	}
-
-	// ensure nonce is incremented by 1
-	nonceAfter, err := t.Eth.NonceAt(t.Ctx(), sourceAddr, nil)
-	if err != nil {
-		t.Fatalf("Unable to determine nonce: %v", err)
-	}
-	expectedNonce := nonceBefore + 1
-	if expectedNonce != nonceAfter {
-		t.Fatalf("Invalid nonce, want %d, got %d", expectedNonce, nonceAfter)
-	}
 }
 
 // validatePredeployContractLogs tests wether the given logs are expected when

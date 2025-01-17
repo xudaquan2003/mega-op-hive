@@ -5,8 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/ethereum/go-ethereum"
@@ -29,8 +30,6 @@ type TestEnv struct {
 	Eth   *ethclient.Client
 	Vault *vault
 
-	genesis []byte
-
 	// This holds most recent context created by the Ctx method.
 	// Every time Ctx is called, it creates a new context with the default
 	// timeout and cancels the previous one.
@@ -39,7 +38,7 @@ type TestEnv struct {
 }
 
 // runHTTP runs the given test function using the HTTP RPC client.
-func runHTTP(t *hivesim.T, c *hivesim.Client, v *vault, g []byte, fn func(*TestEnv)) {
+func runHTTP(t *hivesim.T, c *hivesim.Client, v *vault, fn func(*TestEnv)) {
 	// This sets up debug logging of the requests and responses.
 	client := &http.Client{
 		Transport: &loggingRoundTrip{
@@ -48,14 +47,13 @@ func runHTTP(t *hivesim.T, c *hivesim.Client, v *vault, g []byte, fn func(*TestE
 		},
 	}
 
-	rpcClient, _ := rpc.DialHTTPWithClient(fmt.Sprintf("http://%v:9545/", c.IP), client)
+	rpcClient, _ := rpc.DialHTTPWithClient(fmt.Sprintf("http://%v:8545/", c.IP), client)
 	defer rpcClient.Close()
 	env := &TestEnv{
-		T:       t,
-		RPC:     rpcClient,
-		Eth:     ethclient.NewClient(rpcClient),
-		Vault:   v,
-		genesis: g,
+		T:     t,
+		RPC:   rpcClient,
+		Eth:   ethclient.NewClient(rpcClient),
+		Vault: v,
 	}
 	fn(env)
 	if env.lastCtx != nil {
@@ -64,9 +62,9 @@ func runHTTP(t *hivesim.T, c *hivesim.Client, v *vault, g []byte, fn func(*TestE
 }
 
 // runWS runs the given test function using the WebSocket RPC client.
-func runWS(t *hivesim.T, c *hivesim.Client, v *vault, g []byte, fn func(*TestEnv)) {
+func runWS(t *hivesim.T, c *hivesim.Client, v *vault, fn func(*TestEnv)) {
 	ctx, done := context.WithTimeout(context.Background(), 5*time.Second)
-	rpcClient, err := rpc.DialWebsocket(ctx, fmt.Sprintf("ws://%v:9546/", c.IP), "")
+	rpcClient, err := rpc.DialWebsocket(ctx, fmt.Sprintf("ws://%v:8546/", c.IP), "")
 	done()
 	if err != nil {
 		t.Fatal("WebSocket connection failed:", err)
@@ -74,11 +72,10 @@ func runWS(t *hivesim.T, c *hivesim.Client, v *vault, g []byte, fn func(*TestEnv
 	defer rpcClient.Close()
 
 	env := &TestEnv{
-		T:       t,
-		RPC:     rpcClient,
-		Eth:     ethclient.NewClient(rpcClient),
-		Vault:   v,
-		genesis: g,
+		T:     t,
+		RPC:   rpcClient,
+		Eth:   ethclient.NewClient(rpcClient),
+		Vault: v,
 	}
 	fn(env)
 	if env.lastCtx != nil {
@@ -91,15 +88,6 @@ func runWS(t *hivesim.T, c *hivesim.Client, v *vault, g []byte, fn func(*TestEnv
 // that are not supported by the ethclient.Client.
 func (t *TestEnv) CallContext(ctx context.Context, result interface{}, method string, args ...interface{}) error {
 	return t.RPC.CallContext(ctx, result, method, args...)
-}
-
-// LoadGenesis returns the genesis block.
-func (t *TestEnv) LoadGenesis() *types.Block {
-	var genesis core.Genesis
-	if err := json.Unmarshal(t.genesis, &genesis); err != nil {
-		panic(fmt.Errorf("can't parse genesis JSON: %v", err))
-	}
-	return genesis.ToBlock(nil)
 }
 
 // Ctx returns a context with the default timeout.
@@ -201,14 +189,14 @@ type loggingRoundTrip struct {
 
 func (rt *loggingRoundTrip) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Read and log the request body.
-	reqBytes, err := ioutil.ReadAll(req.Body)
+	reqBytes, err := io.ReadAll(req.Body)
 	req.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 	rt.t.Logf(">>  %s", bytes.TrimSpace(reqBytes))
 	reqCopy := *req
-	reqCopy.Body = ioutil.NopCloser(bytes.NewReader(reqBytes))
+	reqCopy.Body = io.NopCloser(bytes.NewReader(reqBytes))
 
 	// Do the round trip.
 	resp, err := rt.inner.RoundTrip(&reqCopy)
@@ -218,14 +206,26 @@ func (rt *loggingRoundTrip) RoundTrip(req *http.Request) (*http.Response, error)
 	defer resp.Body.Close()
 
 	// Read and log the response bytes.
-	respBytes, err := ioutil.ReadAll(resp.Body)
+	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 	respCopy := *resp
-	respCopy.Body = ioutil.NopCloser(bytes.NewReader(respBytes))
+	respCopy.Body = io.NopCloser(bytes.NewReader(respBytes))
 	rt.t.Logf("<<  %s", bytes.TrimSpace(respBytes))
 	return &respCopy, nil
+}
+
+func loadGenesis() *types.Block {
+	contents, err := os.ReadFile("init/genesis.json")
+	if err != nil {
+		panic(fmt.Errorf("can't to read genesis file: %v", err))
+	}
+	var genesis core.Genesis
+	if err := json.Unmarshal(contents, &genesis); err != nil {
+		panic(fmt.Errorf("can't parse genesis JSON: %v", err))
+	}
+	return genesis.ToBlock()
 }
 
 // diff checks whether x and y are deeply equal, returning a description

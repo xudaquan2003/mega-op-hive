@@ -5,10 +5,12 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -16,8 +18,8 @@ import (
 
 var (
 	// This is the account that sends vault funding transactions.
-	vaultAccountAddr = common.HexToAddress("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266")
-	vaultKey, _      = crypto.HexToECDSA("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80")
+	vaultAccountAddr = common.HexToAddress("0xcf49fda3be353c69b41ed96333cd24302da4556f")
+	vaultKey, _      = crypto.HexToECDSA("63b508a03c3b5937ceb903af8b1b0c191012ef6eb7e9c3fb7afa94e5d214d376")
 	// Address of the vault in genesis.
 	predeployedVaultAddr = common.HexToAddress("0000000000000000000000000000000000000315")
 	// Number of blocks to wait before funding tx is considered valid.
@@ -72,7 +74,7 @@ func (v *vault) signTransaction(sender common.Address, tx *types.Transaction) (*
 	if key == nil {
 		return nil, fmt.Errorf("sender account %v not in vault", sender)
 	}
-	signer := types.LatestSignerForChainID(chainID)
+	signer := types.NewEIP155Signer(chainID)
 	return types.SignTx(tx, signer, key)
 }
 
@@ -89,6 +91,8 @@ func (v *vault) createAccountWithSubscription(t *TestEnv, amount *big.Int) commo
 		headsSub ethereum.Subscription
 		heads    = make(chan *types.Header)
 		logsSub  ethereum.Subscription
+		logs     = make(chan types.Log)
+		vault, _ = abi.JSON(strings.NewReader(predeployedVaultABI))
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -100,6 +104,19 @@ func (v *vault) createAccountWithSubscription(t *TestEnv, amount *big.Int) commo
 		t.Fatal("could not create new head subscription:", err)
 	}
 	defer headsSub.Unsubscribe()
+
+	// set up the log event subscription
+	eventTopic := vault.Events["Send"].ID
+	addressTopic := common.BytesToHash(common.LeftPadBytes(address[:], 32))
+	q := ethereum.FilterQuery{
+		Addresses: []common.Address{predeployedVaultAddr},
+		Topics:    [][]common.Hash{{eventTopic}, {addressTopic}},
+	}
+	logsSub, err = t.Eth.SubscribeFilterLogs(ctx, q, logs)
+	if err != nil {
+		t.Fatal("could not create log filter subscription:", err)
+	}
+	defer logsSub.Unsubscribe()
 
 	// order the vault to send some ether
 	tx := v.makeFundingTx(t, address, amount)
@@ -117,6 +134,13 @@ func (v *vault) createAccountWithSubscription(t *TestEnv, amount *big.Int) commo
 		select {
 		case head := <-heads:
 			latestHeader = head
+		case log := <-logs:
+			if !log.Removed {
+				receivedLog = &log
+			} else if log.Removed && receivedLog != nil && receivedLog.BlockHash == log.BlockHash {
+				// chain reorg!
+				receivedLog = nil
+			}
 		case err := <-headsSub.Err():
 			t.Fatalf("could not fund new account: %v", err)
 		case err := <-logsSub.Err():
@@ -156,7 +180,7 @@ func (v *vault) createAccount(t *TestEnv, amount *big.Int) common.Address {
 
 	// wait for vaultTxConfirmationCount confirmation by checking the balance vaultTxConfirmationCount blocks back.
 	// createAndFundAccountWithSubscription for a better solution using logs
-	for i := uint64(0); i < vaultTxConfirmationCount*20; i++ {
+	for i := uint64(0); i < vaultTxConfirmationCount*12; i++ {
 		number, err := t.Eth.BlockNumber(t.Ctx())
 		if err != nil {
 			t.Fatalf("can't get block number:", err)
@@ -177,12 +201,18 @@ func (v *vault) createAccount(t *TestEnv, amount *big.Int) common.Address {
 }
 
 func (v *vault) makeFundingTx(t *TestEnv, recipient common.Address, amount *big.Int) *types.Transaction {
+	vault, _ := abi.JSON(strings.NewReader(predeployedVaultABI))
+	payload, err := vault.Pack("sendSome", recipient, amount)
+	if err != nil {
+		t.Fatalf("can't pack pack vault tx input: %v", err)
+	}
 	var (
 		nonce    = v.nextNonce()
 		gasLimit = uint64(75000)
+		txAmount = new(big.Int)
 	)
-	tx := types.NewTransaction(nonce, recipient, amount, gasLimit, gasPrice, nil)
-	signer := types.LatestSignerForChainID(chainID)
+	tx := types.NewTransaction(nonce, predeployedVaultAddr, txAmount, gasLimit, gasPrice, payload)
+	signer := types.NewEIP155Signer(chainID)
 	signedTx, err := types.SignTx(tx, signer, vaultKey)
 	if err != nil {
 		t.Fatal("can't sign vault funding tx:", err)
@@ -199,3 +229,24 @@ func (v *vault) nextNonce() uint64 {
 	v.nonce++
 	return nonce
 }
+
+var (
+	predeployedVaultContractSrc = `
+pragma solidity ^0.4.6;
+
+// The vault contract is used in the hive rpc-tests suite.
+// From this preallocated contract accounts that are created
+// during the tests are funded.
+contract Vault {
+    event Send(address indexed, uint);
+
+    // sendSome send 'amount' wei 'to'
+    function sendSome(address to, uint amount) {
+        if (to.send(amount)) {
+            Send(to, amount);
+        }
+    }
+}`
+	// vault ABI
+	predeployedVaultABI = `[{"constant":false,"inputs":[{"name":"to","type":"address"},{"name":"amount","type":"uint256"}],"name":"sendSome","outputs":[],"payable":false,"type":"function"},{"anonymous":false,"inputs":[{"indexed":true,"name":"","type":"address"},{"indexed":false,"name":"","type":"uint256"}],"name":"Send","type":"event"}]`
+)
