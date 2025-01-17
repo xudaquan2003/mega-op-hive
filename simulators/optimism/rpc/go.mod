@@ -4,7 +4,8 @@ go 1.22
 
 toolchain go1.23.4
 
-replace github.com/ethereum/hive v0.0.0-20240715150147-c87a99dccfce => /nvme2/daquan/src/local/mega-op-hive
+// replace github.com/ethereum/hive v0.0.0-20240715150147-c87a99dccfce => github.com/xudaquan2003/mega-op-hive v0.0.0-20240715150147-c001e58c96b97
+replace github.com/ethereum/hive v0.0.0-20240715150147-c87a99dccfce => ../../../../mega-op-hive
 
 require (
 	github.com/ethereum/go-ethereum v1.14.6-0.20241219150305-341647f1865d
