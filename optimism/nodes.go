@@ -16,8 +16,9 @@ type DeployerNode struct {
 
 type L2Node struct {
 	*hivesim.Client
-	HTTPPort uint16
-	WSPort   uint16
+	HTTPPort    uint16
+	WSPort      uint16
+	AuthrpcPort uint16
 }
 
 type OpNode struct {

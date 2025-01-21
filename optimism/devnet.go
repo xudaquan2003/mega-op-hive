@@ -164,7 +164,7 @@ func (d *Devnet) StartL2() error {
 	jwtsecretOpt := hivesim.WithDynamicFile("/jwtsecret", bytesSource([]byte(d.Jwtsecret)))
 	opts := []hivesim.StartOption{executionOpts, genesisL2Opt, jwtsecretOpt}
 
-	d.L2 = &L2Node{d.T.StartClient(l2.Name, opts...), 9545, 9546}
+	d.L2 = &L2Node{d.T.StartClient(l2.Name, opts...), 9545, 9546, 9551}
 	return nil
 }
 
@@ -195,7 +195,7 @@ func (d *Devnet) StartOp() error {
 		"HIVE_NODETYPE":         "full",
 
 		"HIVE_L1_URL":             fmt.Sprintf("http://%s:%d", d.L1.IP, d.L1.HTTPPort),
-		"HIVE_L2_URL":             fmt.Sprintf("http://%s:%d", d.L2.IP, d.L2.HTTPPort),
+		"HIVE_L2_URL":             fmt.Sprintf("http://%s:%d", d.L2.IP, d.L2.AuthrpcPort),
 		"HIVE_L1_ETH_RPC_FLAG":    fmt.Sprintf("--l1=ws://%s:%d", d.L1.IP, d.L1.WSPort),
 		"HIVE_L2_ENGINE_RPC_FLAG": fmt.Sprintf("--l2=ws://%s:%d", d.L2.IP, d.L2.WSPort),
 

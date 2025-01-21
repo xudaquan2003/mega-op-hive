@@ -12,7 +12,7 @@ op-reth node \
     --ws \
     --ws.addr=0.0.0.0 \
     --ws.port=9546 \
-    --ws.api=net,eth,miner \
+    --ws.api=admin,net,eth,web3,debug,trace,miner \
     --ws.origins=* \
     --authrpc.port=9551 \
     --authrpc.jwtsecret=/jwtsecret \

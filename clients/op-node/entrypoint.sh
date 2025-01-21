@@ -1,7 +1,11 @@
 #!/bin/sh
 set -exu
 
-private_key=$(cat /wallets.json | jq -r .2151908.sequencerPrivateKey)
+cat /wallets.json
+
+private_key=$(cat /wallets.json | jq -r '."3151908".sequencerPrivateKey')
+
+echo "private_key: $private_key"
 
 op-node \
     --l2=$HIVE_L2_URL \
@@ -13,6 +17,7 @@ op-node \
     --rpc.enable-admin \
     --l1=$HIVE_L1_URL \
     --l1.rpckind=standard \
+    --l1.beacon.ignore=true \
     --l1.trustrpc \
     --p2p.listen.ip=0.0.0.0 \
     --p2p.listen.tcp=9003 \

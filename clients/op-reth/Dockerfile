@@ -11,6 +11,7 @@ VOLUME ["/db"]
 
 EXPOSE 9545/tcp
 EXPOSE 9546/tcp
+EXPOSE 9551/tcp
 
 ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
 
