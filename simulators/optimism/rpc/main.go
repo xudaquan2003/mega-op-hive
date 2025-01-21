@@ -173,7 +173,7 @@ func runAllTests(t *hivesim.T) {
 	d.Wait()
 	// d.DeployL1()
 	d.InitL2()
-	// d.StartL2()
+	d.StartL2()
 	// d.InitOp()
 	// d.StartOp()
 	// d.StartL2OS()

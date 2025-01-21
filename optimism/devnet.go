@@ -205,13 +205,10 @@ func (d *Devnet) StartL2() error {
 		"HIVE_CHAIN_ID":        chainID.String(),
 	}
 
-	genesisTimestampOpt := hivesim.WithDynamicFile("/genesis_timestamp", bytesSource([]byte(d.GenesisTimestamp)))
-	l2ToL1MessagePasserOpt := hivesim.WithDynamicFile("/L2ToL1MessagePasser.json", bytesSource([]byte(d.L2ToL1MessagePasserJSON)))
-	l2CrossDomainMessengerOpt := hivesim.WithDynamicFile("/L2CrossDomainMessenger.json", bytesSource([]byte(d.L2CrossDomainMessengerJSON)))
-	optimismMintableTokenFactoryOpt := hivesim.WithDynamicFile("/OptimismMintableTokenFactoryProxy.json", bytesSource([]byte(d.OptimismMintableTokenFactoryJSON)))
-	l2StandardBridgeOpt := hivesim.WithDynamicFile("/L2StandardBridge.json", bytesSource([]byte(d.L2StandardBridgeJSON)))
-	l1BlockOpt := hivesim.WithDynamicFile("/L1Block.json", bytesSource([]byte(d.L1BlockJSON)))
-	opts := []hivesim.StartOption{executionOpts, genesisTimestampOpt, l2ToL1MessagePasserOpt, l2CrossDomainMessengerOpt, optimismMintableTokenFactoryOpt, l2StandardBridgeOpt, l1BlockOpt}
+	genesisL2Opt := hivesim.WithDynamicFile("/genesis-2151908.json", bytesSource([]byte(d.GenesisL2)))
+	jwtsecretOpt := hivesim.WithDynamicFile("/jwtsecret", bytesSource([]byte(d.Jwtsecret)))
+	opts := []hivesim.StartOption{executionOpts, genesisL2Opt, jwtsecretOpt}
+
 	d.L2 = &L2Node{d.T.StartClient(l2.Name, opts...), 9545, 9546}
 	return nil
 }
