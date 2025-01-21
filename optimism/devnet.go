@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/hive/hivesim"
@@ -13,6 +14,7 @@ type Devnet struct {
 	T *hivesim.T
 
 	L1       *Eth1Node
+	Deployer *DeployerNode
 	L2       *L2Node
 	Rollup   *OpNode
 	Verifier *OpNode
@@ -87,6 +89,8 @@ func (d *Devnet) Start() {
 
 	opts := []hivesim.StartOption{executionOpts}
 	d.L1 = &Eth1Node{d.T.StartClient(eth1.Name, opts...), 8545, 8546}
+
+	time.Sleep(3 * time.Minute)
 
 	d.Nodes["op-l1"] = eth1
 	d.Nodes["op-deployer"] = deployer

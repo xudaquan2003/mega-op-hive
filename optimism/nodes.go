@@ -8,6 +8,12 @@ type Eth1Node struct {
 	WSPort   uint16
 }
 
+type DeployerNode struct {
+	*hivesim.Client
+	HTTPPort uint16
+	WSPort   uint16
+}
+
 type L2Node struct {
 	*hivesim.Client
 	HTTPPort uint16
