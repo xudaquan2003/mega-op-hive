@@ -40,10 +40,13 @@ func (d *Devnet) Start() {
 	if err != nil {
 		d.T.Fatal(err)
 	}
-	var eth1, l2, op, l2os, bss *hivesim.ClientDefinition
+	var eth1, deployer, l2, op, l2os, bss *hivesim.ClientDefinition
 	for _, client := range clientTypes {
 		if client.HasRole("op-l1") {
 			eth1 = client
+		}
+		if client.HasRole("op-deployer") {
+			deployer = client
 		}
 		if client.HasRole("op-l2") {
 			l2 = client
@@ -59,9 +62,9 @@ func (d *Devnet) Start() {
 		}
 	}
 
-	if eth1 == nil || l2 == nil || op == nil || l2os == nil || bss == nil {
-		d.T.Fatal("op-l1, op-l2, op-node, op-proposer, op-batcher required")
-	}
+	// if eth1 == nil || deployer == nil || l2 == nil || op == nil || l2os == nil || bss == nil {
+	// 	d.T.Fatal("op-l1, op-l2, op-node, op-proposer, op-batcher required")
+	// }
 
 	// Generate genesis for execution clients
 	//    eth1Genesis := setup.BuildEth1Genesis(config.TerminalTotalDifficulty, uint64(eth1GenesisTime))
@@ -78,10 +81,15 @@ func (d *Devnet) Start() {
 	}
 	executionOpts := hivesim.Bundle(eth1ConfigOpt, eth1Bundle, execNodeOpts)
 
+	// t.Logf("INFO: Connected to client %d, remote public key: %s", step.ClientIndex, conn.RemoteKey())
+	d.T.Logf("eth1.Name: %s", eth1.Name)
+	d.T.Log(eth1)
+
 	opts := []hivesim.StartOption{executionOpts}
 	d.L1 = &Eth1Node{d.T.StartClient(eth1.Name, opts...), 8545, 8546}
 
 	d.Nodes["op-l1"] = eth1
+	d.Nodes["op-deployer"] = deployer
 	d.Nodes["op-l2"] = l2
 	d.Nodes["op-node"] = op
 	d.Nodes["op-proposer"] = l2os

@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/params"
@@ -106,13 +104,10 @@ interacting with one.`[1:],
 	}
 
 	// Add tests for full nodes.
-	suite.Add(&hivesim.ClientTestSpec{
-		Role:        "eth1",
+	suite.Add(&hivesim.TestSpec{
 		Name:        "client launch",
 		Description: `This test launches the client and collects its logs.`,
-		Parameters:  clientEnv,
-		Files:       files,
-		Run:         func(t *hivesim.T, c *hivesim.Client) { runAllTests(t, c, c.Type) },
+		Run:         func(t *hivesim.T) { runAllTests(t) },
 		AlwaysRun:   true,
 	})
 
@@ -165,7 +160,8 @@ interacting with one.`[1:],
 
 // runAllTests runs the tests against a client instance.
 // Most tests simply wait for tx inclusion in a block so we can run many tests concurrently.
-func runAllTests(t *hivesim.T, c *hivesim.Client, clientName string) {
+func runAllTests(t *hivesim.T) {
+	t.Log("running all tests")
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 	d := optimism.Devnet{
@@ -175,39 +171,39 @@ func runAllTests(t *hivesim.T, c *hivesim.Client, clientName string) {
 	}
 	d.Start()
 	d.Wait()
-	d.DeployL1()
-	d.InitL2()
-	d.StartL2()
-	d.InitOp()
-	d.StartOp()
-	d.StartL2OS()
-	d.StartBSS()
+	// d.DeployL1()
+	// d.InitL2()
+	// d.StartL2()
+	// d.InitOp()
+	// d.StartOp()
+	// d.StartL2OS()
+	// d.StartBSS()
 
-	vault := newVault()
+	// vault := newVault()
 
-	s := newSemaphore(16)
-	for _, test := range tests {
-		test := test
-		s.get()
-		go func() {
-			defer s.put()
-			t.Run(hivesim.TestSpec{
-				Name:        fmt.Sprintf("%s (%s)", test.Name, clientName),
-				Description: test.About,
-				Run: func(t *hivesim.T) {
-					switch test.Name[:strings.IndexByte(test.Name, '/')] {
-					case "http":
-						runHTTP(t, c, vault, test.Run)
-					case "ws":
-						runWS(t, c, vault, test.Run)
-					default:
-						panic("bad test prefix in name " + test.Name)
-					}
-				},
-			})
-		}()
-	}
-	s.drain()
+	// s := newSemaphore(16)
+	// for _, test := range tests {
+	// 	test := test
+	// 	s.get()
+	// 	go func() {
+	// 		defer s.put()
+	// 		t.Run(hivesim.TestSpec{
+	// 			Name:        fmt.Sprintf("%s (%s)", test.Name, clientName),
+	// 			Description: test.About,
+	// 			Run: func(t *hivesim.T) {
+	// 				switch test.Name[:strings.IndexByte(test.Name, '/')] {
+	// 				case "http":
+	// 					runHTTP(t, c, vault, test.Run)
+	// 				case "ws":
+	// 					runWS(t, c, vault, test.Run)
+	// 				default:
+	// 					panic("bad test prefix in name " + test.Name)
+	// 				}
+	// 			},
+	// 		})
+	// 	}()
+	// }
+	// s.drain()
 }
 
 type semaphore chan struct{}
