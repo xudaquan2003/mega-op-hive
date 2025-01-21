@@ -129,13 +129,19 @@ func (d *Devnet) Cat(path string) (string, error) {
 }
 
 func (d *Devnet) InitL2() error {
-	genesisL2, err := d.Cat("/network-data/chainspec-2151908.json")
+	genesisL2, err := d.Cat("/network-data/genesis-2151908.json")
 	if err != nil {
 		return err
 	}
 	d.GenesisL2 = genesisL2
+	d.T.Logf("genesisL2:\n %s", genesisL2)
 
-	d.T.Logf("genesisL2: %s", genesisL2)
+	jwtsecret, err := d.Cat("/jwt/jwtsecret")
+	if err != nil {
+		return err
+	}
+	d.Jwtsecret = jwtsecret
+	d.T.Logf("jwtsecret:\n %s", jwtsecret)
 
 	// genesisTimestamp, err := d.Cat("/hive/genesis_timestamp")
 	// if err != nil {

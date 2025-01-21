@@ -18,10 +18,10 @@ RUN chmod +x /entrypoint.sh
 ADD intent.toml /intent.toml
 
 # Helper scripts; called from devnet.go
-# ADD cat.sh /hive-bin/cat.sh
-# RUN chmod +x /hive-bin/cat.sh
-ADD cat.sh /cat.sh
-RUN chmod +x /cat.sh
+ADD cat.sh /hive-bin/cat.sh
+RUN chmod +x /hive-bin/cat.sh
+# ADD cat.sh /cat.sh
+# RUN chmod +x /cat.sh
 
 COPY --from=reth-base /usr/local/bin/reth /usr/local/bin/reth
 COPY --from=deployment-utils /usr/local/bin/cast /usr/local/bin/cast
