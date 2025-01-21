@@ -19,7 +19,22 @@ op-deployer inspect rollup --workdir /network-data --outfile /network-data/rollu
 
 jq --from-file /fund-script/gen2spec.jq < "/network-data/genesis-2151908.json" > "/network-data/chainspec-2151908.json"
 
-while true; do
-  echo "Container is running..."
-  sleep 60
-done
+
+# while true; do
+#   echo "Container is running..."
+#   sleep 60
+# done
+
+reth node \
+    --chain /network-data/genesis-2151908.json \
+    --auto-mine \
+    --dev.block-time 1s \
+    --http \
+    --http.addr=0.0.0.0 \
+    --http.api=admin,debug,eth,net,web3 \
+    --ws \
+    --ws.addr=0.0.0.0 \
+    --ws.api=admin,debug,eth,net,web3 \
+    --nat none
+
+

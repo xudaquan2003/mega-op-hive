@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/hive/hivesim"
@@ -20,6 +19,9 @@ type Devnet struct {
 	Verifier *OpNode
 	Proposer *L2OSNode
 	Batcher  *BSSNode
+
+	GenesisL2 string
+	Jwtsecret string
 
 	GenesisTimestamp string
 	L2Genesis        string
@@ -68,13 +70,6 @@ func (d *Devnet) Start() {
 	// 	d.T.Fatal("op-l1, op-l2, op-node, op-proposer, op-batcher required")
 	// }
 
-	// Generate genesis for execution clients
-	//    eth1Genesis := setup.BuildEth1Genesis(config.TerminalTotalDifficulty, uint64(eth1GenesisTime))
-	//    eth1ConfigOpt := eth1Genesis.ToParams(depositAddress)
-	//    eth1Bundle, err := setup.Eth1Bundle(eth1Genesis.Genesis)
-	//    if err != nil {
-	//            t.Fatal(err)
-	//    }
 	var eth1ConfigOpt, eth1Bundle hivesim.Params
 	execNodeOpts := hivesim.Params{
 		"HIVE_CATALYST_ENABLED": "1",
@@ -89,6 +84,7 @@ func (d *Devnet) Start() {
 
 	opts := []hivesim.StartOption{executionOpts}
 	d.L1 = &Eth1Node{d.T.StartClient(eth1.Name, opts...), 8545, 8546}
+	d.Wait()
 
 	l1_rpc_url := fmt.Sprintf("http://%v:8545", d.L1.Client.IP)
 	var deployerConfigOpt, deployerBundle hivesim.Params
@@ -100,7 +96,7 @@ func (d *Devnet) Start() {
 
 	d.Deployer = &DeployerNode{d.T.StartClient(deployer.Name, opts...), 8545, 8546}
 
-	time.Sleep(3 * time.Minute)
+	// time.Sleep(3 * time.Minute)
 
 	d.Nodes["op-l1"] = eth1
 	d.Nodes["op-deployer"] = deployer
@@ -125,7 +121,7 @@ func (d *Devnet) DeployL1() error {
 }
 
 func (d *Devnet) Cat(path string) (string, error) {
-	execInfo, err := d.L1.Client.Exec("cat.sh", path)
+	execInfo, err := d.Deployer.Client.Exec("cat.sh", path)
 	if err != nil {
 		return "", err
 	}
@@ -133,53 +129,61 @@ func (d *Devnet) Cat(path string) (string, error) {
 }
 
 func (d *Devnet) InitL2() error {
-	genesisTimestamp, err := d.Cat("/hive/genesis_timestamp")
+	genesisL2, err := d.Cat("/network-data/chainspec-2151908.json")
 	if err != nil {
 		return err
 	}
-	d.GenesisTimestamp = genesisTimestamp
+	d.GenesisL2 = genesisL2
 
-	l2OutputOracle, err := d.Cat("/hive/optimism/packages/contracts-bedrock/deployments/devnetL1/L2OutputOracleProxy.json")
-	if err != nil {
-		return err
-	}
-	d.L2OutputOracle = l2OutputOracle
+	d.T.Logf("genesisL2: %s", genesisL2)
 
-	optimismPortal, err := d.Cat("/hive/optimism/packages/contracts-bedrock/deployments/devnetL1/OptimismPortalProxy.json")
-	if err != nil {
-		return err
-	}
-	d.OptimismPortal = optimismPortal
+	// genesisTimestamp, err := d.Cat("/hive/genesis_timestamp")
+	// if err != nil {
+	// 	return err
+	// }
+	// d.GenesisTimestamp = genesisTimestamp
 
-	l2ToL1MessagePasserJSON, err := d.Cat("/hive/optimism/packages/contracts-bedrock/artifacts/contracts/L2/L2ToL1MessagePasser.sol/L2ToL1MessagePasser.json")
-	if err != nil {
-		return err
-	}
-	d.L2ToL1MessagePasserJSON = l2ToL1MessagePasserJSON
+	// l2OutputOracle, err := d.Cat("/hive/optimism/packages/contracts-bedrock/deployments/devnetL1/L2OutputOracleProxy.json")
+	// if err != nil {
+	// 	return err
+	// }
+	// d.L2OutputOracle = l2OutputOracle
 
-	l2CrossDomainMessengerJSON, err := d.Cat("/hive/optimism/packages/contracts-bedrock/artifacts/contracts/L2/L2CrossDomainMessenger.sol/L2CrossDomainMessenger.json")
-	if err != nil {
-		return err
-	}
-	d.L2CrossDomainMessengerJSON = l2CrossDomainMessengerJSON
+	// optimismPortal, err := d.Cat("/hive/optimism/packages/contracts-bedrock/deployments/devnetL1/OptimismPortalProxy.json")
+	// if err != nil {
+	// 	return err
+	// }
+	// d.OptimismPortal = optimismPortal
 
-	optimismMintableTokenFactoryJSON, err := d.Cat("/hive/optimism/packages/contracts-bedrock/artifacts/contracts/universal/OptimismMintableTokenFactoryProxy.sol/OptimismMintableTokenFactoryProxy.json")
-	if err != nil {
-		return err
-	}
-	d.OptimismMintableTokenFactoryJSON = optimismMintableTokenFactoryJSON
+	// l2ToL1MessagePasserJSON, err := d.Cat("/hive/optimism/packages/contracts-bedrock/artifacts/contracts/L2/L2ToL1MessagePasser.sol/L2ToL1MessagePasser.json")
+	// if err != nil {
+	// 	return err
+	// }
+	// d.L2ToL1MessagePasserJSON = l2ToL1MessagePasserJSON
 
-	l2StandardBridgeJSON, err := d.Cat("/hive/optimism/packages/contracts-bedrock/artifacts/contracts/L2/L2StandardBridge.sol/L2StandardBridge.json")
-	if err != nil {
-		return err
-	}
-	d.L2StandardBridgeJSON = l2StandardBridgeJSON
+	// l2CrossDomainMessengerJSON, err := d.Cat("/hive/optimism/packages/contracts-bedrock/artifacts/contracts/L2/L2CrossDomainMessenger.sol/L2CrossDomainMessenger.json")
+	// if err != nil {
+	// 	return err
+	// }
+	// d.L2CrossDomainMessengerJSON = l2CrossDomainMessengerJSON
 
-	l1BlockJSON, err := d.Cat("/hive/optimism/packages/contracts-bedrock/artifacts/contracts/L2/L1Block.sol/L1Block.json")
-	if err != nil {
-		return err
-	}
-	d.L1BlockJSON = l1BlockJSON
+	// optimismMintableTokenFactoryJSON, err := d.Cat("/hive/optimism/packages/contracts-bedrock/artifacts/contracts/universal/OptimismMintableTokenFactoryProxy.sol/OptimismMintableTokenFactoryProxy.json")
+	// if err != nil {
+	// 	return err
+	// }
+	// d.OptimismMintableTokenFactoryJSON = optimismMintableTokenFactoryJSON
+
+	// l2StandardBridgeJSON, err := d.Cat("/hive/optimism/packages/contracts-bedrock/artifacts/contracts/L2/L2StandardBridge.sol/L2StandardBridge.json")
+	// if err != nil {
+	// 	return err
+	// }
+	// d.L2StandardBridgeJSON = l2StandardBridgeJSON
+
+	// l1BlockJSON, err := d.Cat("/hive/optimism/packages/contracts-bedrock/artifacts/contracts/L2/L1Block.sol/L1Block.json")
+	// if err != nil {
+	// 	return err
+	// }
+	// d.L1BlockJSON = l1BlockJSON
 
 	return nil
 }
