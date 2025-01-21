@@ -90,6 +90,16 @@ func (d *Devnet) Start() {
 	opts := []hivesim.StartOption{executionOpts}
 	d.L1 = &Eth1Node{d.T.StartClient(eth1.Name, opts...), 8545, 8546}
 
+	l1_rpc_url := fmt.Sprintf("http://%v:8545", d.L1.Client.IP)
+	var deployerConfigOpt, deployerBundle hivesim.Params
+	deployerNodeOpts := hivesim.Params{
+		"HIVE_L1_RPC_URL": l1_rpc_url,
+	}
+	deployerOpts := hivesim.Bundle(deployerConfigOpt, deployerBundle, deployerNodeOpts)
+	opts = []hivesim.StartOption{deployerOpts}
+
+	d.Deployer = &DeployerNode{d.T.StartClient(eth1.Name, opts...), 8545, 8546}
+
 	time.Sleep(3 * time.Minute)
 
 	d.Nodes["op-l1"] = eth1
@@ -103,7 +113,8 @@ func (d *Devnet) Start() {
 func (d *Devnet) Wait() error {
 	// TODO: wait until rpc connects
 	client := ethclient.NewClient(d.L1.Client.RPC())
-	_, err := client.ChainID(d.Ctx)
+	chainID, err := client.ChainID(d.Ctx)
+	d.T.Logf("d.L1.Client, chainID: %s", chainID.String())
 	return err
 }
 
