@@ -25,6 +25,8 @@ type Devnet struct {
 
 	GenesisTimestamp string
 	L2Genesis        string
+	RollupJson       string
+	WalletsJson      string
 
 	L2ToL1MessagePasserJSON          string
 	L2CrossDomainMessengerJSON       string
@@ -86,7 +88,8 @@ func (d *Devnet) Start() {
 	d.L1 = &Eth1Node{d.T.StartClient(eth1.Name, opts...), 8545, 8546}
 	d.Wait()
 
-	l1_rpc_url := fmt.Sprintf("http://%v:8545", d.L1.Client.IP)
+	l1_rpc_url := fmt.Sprintf("http://%s:%d", d.L1.IP, d.L1.HTTPPort)
+	// l1_rpc_url := fmt.Sprintf("http://%v:8545", d.L1.Client.IP)
 	var deployerConfigOpt, deployerBundle hivesim.Params
 	deployerNodeOpts := hivesim.Params{
 		"HIVE_L1_RPC_URL": l1_rpc_url,
@@ -143,54 +146,6 @@ func (d *Devnet) InitL2() error {
 	d.Jwtsecret = jwtsecret
 	d.T.Logf("jwtsecret:\n %s", jwtsecret)
 
-	// genesisTimestamp, err := d.Cat("/hive/genesis_timestamp")
-	// if err != nil {
-	// 	return err
-	// }
-	// d.GenesisTimestamp = genesisTimestamp
-
-	// l2OutputOracle, err := d.Cat("/hive/optimism/packages/contracts-bedrock/deployments/devnetL1/L2OutputOracleProxy.json")
-	// if err != nil {
-	// 	return err
-	// }
-	// d.L2OutputOracle = l2OutputOracle
-
-	// optimismPortal, err := d.Cat("/hive/optimism/packages/contracts-bedrock/deployments/devnetL1/OptimismPortalProxy.json")
-	// if err != nil {
-	// 	return err
-	// }
-	// d.OptimismPortal = optimismPortal
-
-	// l2ToL1MessagePasserJSON, err := d.Cat("/hive/optimism/packages/contracts-bedrock/artifacts/contracts/L2/L2ToL1MessagePasser.sol/L2ToL1MessagePasser.json")
-	// if err != nil {
-	// 	return err
-	// }
-	// d.L2ToL1MessagePasserJSON = l2ToL1MessagePasserJSON
-
-	// l2CrossDomainMessengerJSON, err := d.Cat("/hive/optimism/packages/contracts-bedrock/artifacts/contracts/L2/L2CrossDomainMessenger.sol/L2CrossDomainMessenger.json")
-	// if err != nil {
-	// 	return err
-	// }
-	// d.L2CrossDomainMessengerJSON = l2CrossDomainMessengerJSON
-
-	// optimismMintableTokenFactoryJSON, err := d.Cat("/hive/optimism/packages/contracts-bedrock/artifacts/contracts/universal/OptimismMintableTokenFactoryProxy.sol/OptimismMintableTokenFactoryProxy.json")
-	// if err != nil {
-	// 	return err
-	// }
-	// d.OptimismMintableTokenFactoryJSON = optimismMintableTokenFactoryJSON
-
-	// l2StandardBridgeJSON, err := d.Cat("/hive/optimism/packages/contracts-bedrock/artifacts/contracts/L2/L2StandardBridge.sol/L2StandardBridge.json")
-	// if err != nil {
-	// 	return err
-	// }
-	// d.L2StandardBridgeJSON = l2StandardBridgeJSON
-
-	// l1BlockJSON, err := d.Cat("/hive/optimism/packages/contracts-bedrock/artifacts/contracts/L2/L1Block.sol/L1Block.json")
-	// if err != nil {
-	// 	return err
-	// }
-	// d.L1BlockJSON = l1BlockJSON
-
 	return nil
 }
 
@@ -214,11 +169,19 @@ func (d *Devnet) StartL2() error {
 }
 
 func (d *Devnet) InitOp() error {
-	execInfo, err := d.L2.Client.Exec("cat.sh", "/hive/genesis-l2.json")
+	rollup, err := d.Cat("/network-data/rollup-2151908.json")
 	if err != nil {
 		return err
 	}
-	d.L2Genesis = execInfo.Stdout
+	d.RollupJson = rollup
+	d.T.Logf("RollupJson:\n %s", rollup)
+
+	wallets, err := d.Cat("/network-data/wallets.json")
+	if err != nil {
+		return err
+	}
+	d.WalletsJson = wallets
+	d.T.Logf("WalletsJson:\n %s", wallets)
 	return nil
 }
 
@@ -226,7 +189,7 @@ func (d *Devnet) StartOp() error {
 	op := d.Nodes["op-node"]
 
 	executionOpts := hivesim.Params{
-		"HIVE_CHECK_LIVE_PORT":  "7545",
+		"HIVE_CHECK_LIVE_PORT":  "8547",
 		"HIVE_CATALYST_ENABLED": "1",
 		"HIVE_LOGLEVEL":         os.Getenv("HIVE_LOGLEVEL"),
 		"HIVE_NODETYPE":         "full",
@@ -244,8 +207,11 @@ func (d *Devnet) StartOp() error {
 		executionOpts = executionOpts.Set("HIVE_SEQUENCER_KEY_FLAG", "--p2p.sequencer.key=/config/p2p-sequencer-key.txt")
 	}
 
-	optimismPortalOpt := hivesim.WithDynamicFile("/OptimismPortalProxy.json", bytesSource([]byte(d.OptimismPortal)))
-	opts := []hivesim.StartOption{executionOpts, optimismPortalOpt}
+	rollupOpt := hivesim.WithDynamicFile("/rollup-2151908.json", bytesSource([]byte(d.RollupJson)))
+	jwtsecretOpt := hivesim.WithDynamicFile("/jwtsecret", bytesSource([]byte(d.Jwtsecret)))
+	walletsOpt := hivesim.WithDynamicFile("/wallets.json", bytesSource([]byte(d.WalletsJson)))
+
+	opts := []hivesim.StartOption{executionOpts, rollupOpt, jwtsecretOpt, walletsOpt}
 	d.Rollup = &OpNode{d.T.StartClient(op.Name, opts...), 7545}
 	return nil
 }

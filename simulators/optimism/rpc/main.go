@@ -171,13 +171,14 @@ func runAllTests(t *hivesim.T) {
 	}
 	d.Start()
 	d.Wait()
-	// d.DeployL1()
 	d.InitL2()
 	d.StartL2()
-	// d.InitOp()
-	// d.StartOp()
+	d.InitOp()
+	d.StartOp()
 	// d.StartL2OS()
 	// d.StartBSS()
+
+	time.Sleep(3 * time.Minute)
 
 	// vault := newVault()
 

@@ -15,7 +15,7 @@ op-reth node \
     --ws.api=net,eth,miner \
     --ws.origins=* \
     --authrpc.port=9551 \
-    --authrpc.jwtsecret=/jwt/jwtsecret \
+    --authrpc.jwtsecret=/jwtsecret \
     --authrpc.addr=0.0.0.0 \
     --discovery.port=30303 \
     --port=30303 \

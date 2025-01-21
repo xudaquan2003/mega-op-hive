@@ -9,8 +9,8 @@ RUN /usr/local/bin/op-reth --version | sed -e 's/reth-optimism-cli \(.*\)/\1/' >
 
 VOLUME ["/db"]
 
-EXPOSE 8545/tcp
-EXPOSE 8546/tcp
+EXPOSE 9545/tcp
+EXPOSE 9546/tcp
 
 ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
 
