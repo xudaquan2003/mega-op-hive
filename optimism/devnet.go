@@ -98,7 +98,7 @@ func (d *Devnet) Start() {
 	deployerOpts := hivesim.Bundle(deployerConfigOpt, deployerBundle, deployerNodeOpts)
 	opts = []hivesim.StartOption{deployerOpts}
 
-	d.Deployer = &DeployerNode{d.T.StartClient(eth1.Name, opts...), 8545, 8546}
+	d.Deployer = &DeployerNode{d.T.StartClient(deployer.Name, opts...), 8545, 8546}
 
 	time.Sleep(3 * time.Minute)
 
