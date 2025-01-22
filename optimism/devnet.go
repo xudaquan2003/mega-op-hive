@@ -162,7 +162,7 @@ func (d *Devnet) StartL2(accountOpts hivesim.StartOption) error {
 
 	genesisL2Opt := hivesim.WithDynamicFile("/genesis.json", bytesSource([]byte(d.GenesisL2)))
 	jwtsecretOpt := hivesim.WithDynamicFile("/jwtsecret", bytesSource([]byte(d.Jwtsecret)))
-	opts := []hivesim.StartOption{executionOpts, genesisL2Opt, jwtsecretOpt}
+	opts := []hivesim.StartOption{executionOpts, genesisL2Opt, accountOpts, jwtsecretOpt}
 
 	d.L2 = &L2Node{d.T.StartClient(l2.Name, opts...), L2_HTTP_PORT, L2_WS_PORT, L2_AUTH_PORT}
 	return nil

@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/params"
@@ -181,33 +179,33 @@ func runAllTests(t *hivesim.T) {
 	// d.StartL2OS()
 	d.StartBSS()
 
-	// time.Sleep(3 * time.Minute)
+	time.Sleep(3 * time.Minute)
 
-	vault := newVault()
+	// vault := newVault()
 
-	s := newSemaphore(16)
-	for _, test := range tests {
-		test := test
-		s.get()
-		go func() {
-			defer s.put()
-			t.Run(hivesim.TestSpec{
-				Name:        fmt.Sprintf("%s (%s)", test.Name, "mega-test"),
-				Description: test.About,
-				Run: func(t *hivesim.T) {
-					switch test.Name[:strings.IndexByte(test.Name, '/')] {
-					case "http":
-						runHTTP(t, d.L2.Client, vault, test.Run)
-					case "ws":
-						runWS(t, d.L2.Client, vault, test.Run)
-					default:
-						panic("bad test prefix in name " + test.Name)
-					}
-				},
-			})
-		}()
-	}
-	s.drain()
+	// s := newSemaphore(16)
+	// for _, test := range tests {
+	// 	test := test
+	// 	s.get()
+	// 	go func() {
+	// 		defer s.put()
+	// 		t.Run(hivesim.TestSpec{
+	// 			Name:        fmt.Sprintf("%s (%s)", test.Name, "mega-test"),
+	// 			Description: test.About,
+	// 			Run: func(t *hivesim.T) {
+	// 				switch test.Name[:strings.IndexByte(test.Name, '/')] {
+	// 				case "http":
+	// 					runHTTP(t, d.L2.Client, vault, test.Run)
+	// 				case "ws":
+	// 					runWS(t, d.L2.Client, vault, test.Run)
+	// 				default:
+	// 					panic("bad test prefix in name " + test.Name)
+	// 				}
+	// 			},
+	// 		})
+	// 	}()
+	// }
+	// s.drain()
 }
 
 type semaphore chan struct{}

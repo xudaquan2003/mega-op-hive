@@ -1,6 +1,11 @@
 #!/bin/sh
 set -exu
 
+if [ -f /genesis_account.json ]; then
+    jq -s '.[0].alloc=([.[].alloc]|flatten)|.[0]' /genesis.json  /genesis_account.json > /genesis_tmp.json
+    mv /genesis_tmp.json /genesis.json
+fi
+
 devnet \
     --datadir=/data/op-reth/execution-data \
     --chain=/genesis.json \

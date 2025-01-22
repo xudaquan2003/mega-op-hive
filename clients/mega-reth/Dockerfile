@@ -1,5 +1,7 @@
 FROM megaeth-labs/devnet/op-reth:latest AS base
 
+RUN apt-get update && apt-get install -y jq
+
 # Inject the startup script
 ADD entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
