@@ -80,7 +80,6 @@ func (d *Devnet) Start() {
 	}
 	executionOpts := hivesim.Bundle(eth1ConfigOpt, eth1Bundle, execNodeOpts)
 
-	// t.Logf("INFO: Connected to client %d, remote public key: %s", step.ClientIndex, conn.RemoteKey())
 	d.T.Logf("eth1.Name: %s", eth1.Name)
 	d.T.Log(eth1)
 
@@ -99,8 +98,6 @@ func (d *Devnet) Start() {
 
 	d.Deployer = &DeployerNode{d.T.StartClient(deployer.Name, opts...), 8545, 8546}
 
-	// time.Sleep(3 * time.Minute)
-
 	d.Nodes["op-l1"] = eth1
 	d.Nodes["op-deployer"] = deployer
 	d.Nodes["op-l2"] = l2
@@ -114,12 +111,6 @@ func (d *Devnet) Wait() error {
 	client := ethclient.NewClient(d.L1.Client.RPC())
 	chainID, err := client.ChainID(d.Ctx)
 	d.T.Logf("d.L1.Client, chainID: %s", chainID.String())
-	return err
-}
-
-func (d *Devnet) DeployL1() error {
-	execInfo, err := d.L1.Client.Exec("deploy.sh")
-	fmt.Println(execInfo.Stdout)
 	return err
 }
 
@@ -189,22 +180,11 @@ func (d *Devnet) StartOp() error {
 	op := d.Nodes["op-node"]
 
 	executionOpts := hivesim.Params{
-		"HIVE_CHECK_LIVE_PORT":  "8547",
-		"HIVE_CATALYST_ENABLED": "1",
-		"HIVE_LOGLEVEL":         os.Getenv("HIVE_LOGLEVEL"),
-		"HIVE_NODETYPE":         "full",
+		"HIVE_CHECK_LIVE_PORT": "8547",
 
-		"HIVE_L1_URL":             fmt.Sprintf("http://%s:%d", d.L1.IP, d.L1.HTTPPort),
-		"HIVE_L2_URL":             fmt.Sprintf("http://%s:%d", d.L2.IP, d.L2.AuthrpcPort),
-		"HIVE_L1_ETH_RPC_FLAG":    fmt.Sprintf("--l1=ws://%s:%d", d.L1.IP, d.L1.WSPort),
-		"HIVE_L2_ENGINE_RPC_FLAG": fmt.Sprintf("--l2=ws://%s:%d", d.L2.IP, d.L2.WSPort),
-
-		"HIVE_P2P_STATIC_FLAG": "",
-	}
-
-	if op.HasRole("op-sequencer") {
-		executionOpts = executionOpts.Set("HIVE_SEQUENCER_ENABLED_FLAG", "--sequencer.enabled")
-		executionOpts = executionOpts.Set("HIVE_SEQUENCER_KEY_FLAG", "--p2p.sequencer.key=/config/p2p-sequencer-key.txt")
+		"HIVE_L1_HTTP_URL": fmt.Sprintf("http://%s:%d", d.L1.IP, d.L1.HTTPPort),
+		"HIVE_L2_AUTH_URL": fmt.Sprintf("http://%s:%d", d.L2.IP, d.L2.AuthrpcPort),
+		"HIVE_L2_HTTP_URL": fmt.Sprintf("http://%s:%d", d.L2.IP, d.L2.HTTPPort),
 	}
 
 	rollupOpt := hivesim.WithDynamicFile("/rollup-2151908.json", bytesSource([]byte(d.RollupJson)))
@@ -213,35 +193,6 @@ func (d *Devnet) StartOp() error {
 
 	opts := []hivesim.StartOption{executionOpts, rollupOpt, jwtsecretOpt, walletsOpt}
 	d.Rollup = &OpNode{d.T.StartClient(op.Name, opts...), 7545}
-	return nil
-}
-
-func (d *Devnet) StartVerifier() error {
-	op := d.Nodes["op-node"]
-
-	executionOpts := hivesim.Params{
-		"HIVE_CHECK_LIVE_PORT":  "7545",
-		"HIVE_CATALYST_ENABLED": "1",
-		"HIVE_LOGLEVEL":         os.Getenv("HIVE_LOGLEVEL"),
-		"HIVE_NODETYPE":         "full",
-
-		"HIVE_L1_URL":             fmt.Sprintf("http://%s:%d", d.L1.IP, d.L1.HTTPPort),
-		"HIVE_L2_URL":             fmt.Sprintf("http://%s:%d", d.L2.IP, d.L2.HTTPPort),
-		"HIVE_L1_ETH_RPC_FLAG":    fmt.Sprintf("--l1=ws://%s:%d", d.L1.IP, d.L1.WSPort),
-		"HIVE_L2_ENGINE_RPC_FLAG": fmt.Sprintf("--l2=ws://%s:%d", d.L2.IP, d.L2.WSPort),
-
-		"HIVE_SEQUENCER_ENABLED_FLAG": "",
-		"HIVE_SEQUENCER_KEY_FLAG":     "",
-		// TODO: avoid hardcoding p2p key
-		"HIVE_P2P_STATIC_FLAG": fmt.Sprintf("--p2p.static=/ip4/%s/tcp/9003/p2p/16Uiu2HAmHqrXGts25TtKMBRHtvhWZLNypsobKoggpZye1XQtJpbZ", d.Rollup.IP),
-	}
-
-	p2pNodeKey := "d30e180aa6c25bac3ba2f0965af5da1934dbabe4505c92ddd1459e5cec27a882"
-
-	optimismPortalOpt := hivesim.WithDynamicFile("/OptimismPortalProxy.json", bytesSource([]byte(d.OptimismPortal)))
-	p2pNodeKeyOpt := hivesim.WithDynamicFile("/config/p2p-node-key.txt", bytesSource([]byte(p2pNodeKey)))
-	opts := []hivesim.StartOption{executionOpts, optimismPortalOpt, p2pNodeKeyOpt}
-	d.Verifier = &OpNode{d.T.StartClient(op.Name, opts...), 7545}
 	return nil
 }
 

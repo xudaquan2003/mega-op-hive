@@ -4,7 +4,7 @@ go 1.22
 
 toolchain go1.23.4
 
-replace github.com/ethereum/hive v0.0.0-20240715150147-c87a99dccfce => github.com/xudaquan2003/mega-op-hive v0.0.2-0.20250121145202-ebe88db73f99
+replace github.com/ethereum/hive v0.0.0-20240715150147-c87a99dccfce => github.com/xudaquan2003/mega-op-hive v0.0.2-0.20250121155359-b30a19e74732
 
 // replace github.com/ethereum/hive v0.0.0-20240715150147-c87a99dccfce => ../../../../mega-op-hive
 
