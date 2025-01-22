@@ -192,7 +192,7 @@ func (d *Devnet) StartOp() error {
 	walletsOpt := hivesim.WithDynamicFile("/wallets.json", bytesSource([]byte(d.WalletsJson)))
 
 	opts := []hivesim.StartOption{executionOpts, rollupOpt, jwtsecretOpt, walletsOpt}
-	d.Rollup = &OpNode{d.T.StartClient(op.Name, opts...), 7545}
+	d.Rollup = &OpNode{d.T.StartClient(op.Name, opts...), 8547}
 	return nil
 }
 
