@@ -3,7 +3,7 @@ set -exu
 
 devnet \
     --datadir=/data/op-reth/execution-data \
-    --chain=/genesis-2151908.json \
+    --chain=/genesis.json \
     --http \
     --http.port=$HIVE_L2_HTTP_PORT \
     --http.addr=0.0.0.0 \

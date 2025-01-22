@@ -157,7 +157,7 @@ func (d *Devnet) StartL2() error {
 		"HIVE_L2_AUTH_PORT": fmt.Sprintf("%d", L2_AUTH_PORT),
 	}
 
-	genesisL2Opt := hivesim.WithDynamicFile("/genesis-2151908.json", bytesSource([]byte(d.GenesisL2)))
+	genesisL2Opt := hivesim.WithDynamicFile("/genesis.json", bytesSource([]byte(d.GenesisL2)))
 	jwtsecretOpt := hivesim.WithDynamicFile("/jwtsecret", bytesSource([]byte(d.Jwtsecret)))
 	opts := []hivesim.StartOption{executionOpts, genesisL2Opt, jwtsecretOpt}
 
