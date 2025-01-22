@@ -16,7 +16,7 @@ op-node \
     --verifier.l1-confs=4 \
     --rollup.config=/rollup-2151908.json \
     --rpc.addr=0.0.0.0 \
-    --rpc.port=8547 \
+    --rpc.port=$HIVE_OP_HTTP_PORT \
     --rpc.enable-admin \
     --l1=$HIVE_L1_HTTP_URL \
     --l1.rpckind=standard \

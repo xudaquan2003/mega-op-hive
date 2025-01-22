@@ -5,16 +5,16 @@ devnet \
     --datadir=/data/op-reth/execution-data \
     --chain=/genesis-2151908.json \
     --http \
-    --http.port=9545 \
+    --http.port=$HIVE_L2_HTTP_PORT \
     --http.addr=0.0.0.0 \
     --http.corsdomain=* \
     --http.api=admin,eth,net,web3,debug,trace,txpool \
     --ws \
     --ws.addr=0.0.0.0 \
-    --ws.port=9546 \
+    --ws.port=$HIVE_L2_WS_PORT \
     --ws.api=admin,eth,net,web3,debug,trace,txpool \
     --ws.origins=* \
-    --authrpc.port=9551 \
+    --authrpc.port=$HIVE_L2_AUTH_PORT \
     --authrpc.jwtsecret=/jwtsecret \
     --authrpc.addr=0.0.0.0 \
     --rpc.max-request-size=150 \

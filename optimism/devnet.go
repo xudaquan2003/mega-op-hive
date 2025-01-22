@@ -76,7 +76,9 @@ func (d *Devnet) Start() {
 	execNodeOpts := hivesim.Params{
 		"HIVE_CATALYST_ENABLED": "1",
 		"HIVE_LOGLEVEL":         os.Getenv("HIVE_LOGLEVEL"),
-		"HIVE_NODETYPE":         "full",
+
+		"HIVE_L1_HTTP_PORT": fmt.Sprintf("%d", L1_HTTP_PORT),
+		"HIVE_L1_WS_PORT":   fmt.Sprintf("%d", L1_WS_PORT),
 	}
 	executionOpts := hivesim.Bundle(eth1ConfigOpt, eth1Bundle, execNodeOpts)
 
@@ -84,11 +86,10 @@ func (d *Devnet) Start() {
 	d.T.Log(eth1)
 
 	opts := []hivesim.StartOption{executionOpts}
-	d.L1 = &Eth1Node{d.T.StartClient(eth1.Name, opts...), 8545, 8546}
+	d.L1 = &Eth1Node{d.T.StartClient(eth1.Name, opts...), L1_HTTP_PORT, L1_WS_PORT}
 	d.Wait()
 
 	l1_rpc_url := fmt.Sprintf("http://%s:%d", d.L1.IP, d.L1.HTTPPort)
-	// l1_rpc_url := fmt.Sprintf("http://%v:8545", d.L1.Client.IP)
 	var deployerConfigOpt, deployerBundle hivesim.Params
 	deployerNodeOpts := hivesim.Params{
 		"HIVE_L1_RPC_URL": l1_rpc_url,
@@ -96,7 +97,8 @@ func (d *Devnet) Start() {
 	deployerOpts := hivesim.Bundle(deployerConfigOpt, deployerBundle, deployerNodeOpts)
 	opts = []hivesim.StartOption{deployerOpts}
 
-	d.Deployer = &DeployerNode{d.T.StartClient(deployer.Name, opts...), 8545, 8546}
+	// d.Deployer = &DeployerNode{d.T.StartClient(deployer.Name, opts...), 8545, 8546}
+	d.Deployer = &DeployerNode{d.T.StartClient(deployer.Name, opts...)}
 
 	d.Nodes["op-l1"] = eth1
 	d.Nodes["op-deployer"] = deployer
@@ -144,18 +146,22 @@ func (d *Devnet) StartL2() error {
 	l2 := d.Nodes["op-l2"]
 
 	executionOpts := hivesim.Params{
-		"HIVE_CHECK_LIVE_PORT": "9545",
+		"HIVE_CHECK_LIVE_PORT": fmt.Sprintf("%d", L2_HTTP_PORT),
 		"HIVE_LOGLEVEL":        os.Getenv("HIVE_LOGLEVEL"),
 		"HIVE_NODETYPE":        "full",
 		"HIVE_NETWORK_ID":      networkID.String(),
 		"HIVE_CHAIN_ID":        chainID.String(),
+
+		"HIVE_L2_HTTP_PORT": fmt.Sprintf("%d", L2_HTTP_PORT),
+		"HIVE_L2_WS_PORT":   fmt.Sprintf("%d", L2_WS_PORT),
+		"HIVE_L2_AUTH_PORT": fmt.Sprintf("%d", L2_AUTH_PORT),
 	}
 
 	genesisL2Opt := hivesim.WithDynamicFile("/genesis-2151908.json", bytesSource([]byte(d.GenesisL2)))
 	jwtsecretOpt := hivesim.WithDynamicFile("/jwtsecret", bytesSource([]byte(d.Jwtsecret)))
 	opts := []hivesim.StartOption{executionOpts, genesisL2Opt, jwtsecretOpt}
 
-	d.L2 = &L2Node{d.T.StartClient(l2.Name, opts...), 9545, 9546, 9551}
+	d.L2 = &L2Node{d.T.StartClient(l2.Name, opts...), L2_HTTP_PORT, L2_WS_PORT, L2_AUTH_PORT}
 	return nil
 }
 
@@ -180,7 +186,9 @@ func (d *Devnet) StartOp() error {
 	op := d.Nodes["op-node"]
 
 	executionOpts := hivesim.Params{
-		"HIVE_CHECK_LIVE_PORT": "8547",
+		"HIVE_CHECK_LIVE_PORT": fmt.Sprintf("%d", OP_HTTP_PORT),
+
+		"HIVE_OP_HTTP_PORT": fmt.Sprintf("%d", OP_HTTP_PORT),
 
 		"HIVE_L1_HTTP_URL": fmt.Sprintf("http://%s:%d", d.L1.IP, d.L1.HTTPPort),
 		"HIVE_L2_AUTH_URL": fmt.Sprintf("http://%s:%d", d.L2.IP, d.L2.AuthrpcPort),
