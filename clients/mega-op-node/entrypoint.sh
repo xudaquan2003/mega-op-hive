@@ -1,9 +1,6 @@
 #!/bin/sh
 set -exu
 
-echo "mega-op-node entrypoint.sh"
-echo "HIVE_L2_HTTP_URL: $HIVE_L2_HTTP_URL"
-
 ROLLUP_JSON_FILEPATH=/rollup-2151908.json
 ROLLUP_JSON_FILEPATH2=/rollup-2151908-2.json
 
@@ -12,8 +9,6 @@ jq ".genesis.l2.hash=$l2_genesis_hash"  $ROLLUP_JSON_FILEPATH > $ROLLUP_JSON_FIL
 mv  $ROLLUP_JSON_FILEPATH2 $ROLLUP_JSON_FILEPATH
 
 private_key=$(cat /wallets.json | jq -r '."3151908".sequencerPrivateKey')
-
-echo "private_key: $private_key"
 
 op-node \
     --l2=$HIVE_L2_AUTH_URL \
