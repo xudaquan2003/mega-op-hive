@@ -145,7 +145,7 @@ func (d *Devnet) InitL2(l2ChainID *big.Int) error {
 	return nil
 }
 
-func (d *Devnet) StartL2() error {
+func (d *Devnet) StartL2(accountOpts hivesim.StartOption) error {
 	l2 := d.Nodes["op-l2"]
 
 	executionOpts := hivesim.Params{

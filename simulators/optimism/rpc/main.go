@@ -14,12 +14,12 @@ import (
 
 var (
 	// parameters used for signing transactions
-	chainID  = big.NewInt(7)
+	chainID  = big.NewInt(2151908)
 	gasPrice = big.NewInt(30 * params.GWei)
 
 	// would be nice to use a networkID that's different from chainID,
 	// but some clients don't support the distinction properly.
-	networkID = big.NewInt(7)
+	networkID = big.NewInt(2151908)
 )
 
 var clientEnv = hivesim.Params{
@@ -38,7 +38,7 @@ var clientEnv = hivesim.Params{
 }
 
 var files = map[string]string{
-	"/genesis.json": "./init/genesis.json",
+	"/genesis_account.json": "./init/genesis.json",
 }
 
 type testSpec struct {
@@ -174,7 +174,8 @@ func runAllTests(t *hivesim.T) {
 	d.Start(chainID)
 	d.Wait()
 	d.InitL2(chainID)
-	d.StartL2()
+	accountOpts := hivesim.WithStaticFiles(files)
+	d.StartL2(accountOpts)
 	d.InitOp(chainID)
 	d.StartOp()
 	// d.StartL2OS()
