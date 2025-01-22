@@ -14,7 +14,7 @@ op-node \
     --l2=$HIVE_L2_AUTH_URL \
     --l2.jwt-secret=/jwtsecret \
     --verifier.l1-confs=4 \
-    --rollup.config=/rollup-2151908.json \
+    --rollup.config=/rollup.json \
     --rpc.addr=0.0.0.0 \
     --rpc.port=$HIVE_OP_HTTP_PORT \
     --rpc.enable-admin \

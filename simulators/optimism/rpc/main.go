@@ -171,11 +171,11 @@ func runAllTests(t *hivesim.T) {
 		Nodes: make(map[string]*hivesim.ClientDefinition),
 		Ctx:   ctx,
 	}
-	d.Start()
+	d.Start(chainID)
 	d.Wait()
-	d.InitL2()
+	d.InitL2(chainID)
 	d.StartL2()
-	d.InitOp()
+	d.InitOp(chainID)
 	d.StartOp()
 	// d.StartL2OS()
 	d.StartBSS()

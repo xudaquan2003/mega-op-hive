@@ -1,7 +1,7 @@
 #!/bin/sh
 set -exu
 
-op-deployer init --intent-config-type custom --l1-chain-id 3151908 --l2-chain-ids 2151908 --workdir /network-data
+op-deployer init --intent-config-type custom --l1-chain-id 3151908 --l2-chain-ids $HIVE_L2_CHAIN_ID --workdir /network-data
 
 export PRIVATE_KEY=eaba42282ad33c8ef2524f07277c03a776d98ae19f581990ce75becb7cfa1c23
 export FUND_VALUE=10ether
@@ -13,11 +13,10 @@ export ETH_RPC_URL=$L1_RPC_URL
 cp /intent.toml /network-data/intent.toml
 
 op-deployer apply --l1-rpc-url $L1_RPC_URL --private-key $PRIVATE_KEY --workdir /network-data
-op-deployer inspect genesis --workdir /network-data --outfile /network-data/genesis-2151908.json 2151908
-op-deployer inspect rollup --workdir /network-data --outfile /network-data/rollup-2151908.json 2151908
+op-deployer inspect genesis --workdir /network-data --outfile /network-data/genesis-$HIVE_L2_CHAIN_ID.json $HIVE_L2_CHAIN_ID
+op-deployer inspect rollup --workdir /network-data --outfile /network-data/rollup-$HIVE_L2_CHAIN_ID.json $HIVE_L2_CHAIN_ID
 
-
-jq --from-file /fund-script/gen2spec.jq < "/network-data/genesis-2151908.json" > "/network-data/chainspec-2151908.json"
+jq --from-file /fund-script/gen2spec.jq < "/network-data/genesis-$HIVE_L2_CHAIN_ID.json" > "/network-data/chainspec-$HIVE_L2_CHAIN_ID.json"
 
 
 # while true; do
@@ -26,7 +25,7 @@ jq --from-file /fund-script/gen2spec.jq < "/network-data/genesis-2151908.json" >
 # done
 
 reth node \
-    --chain /network-data/genesis-2151908.json \
+    --chain /network-data/genesis-$HIVE_L2_CHAIN_ID.json \
     --auto-mine \
     --dev.block-time 1s \
     --http \

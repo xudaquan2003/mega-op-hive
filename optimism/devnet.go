@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/hive/hivesim"
 )
@@ -41,7 +43,7 @@ type Devnet struct {
 	Ctx   context.Context
 }
 
-func (d *Devnet) Start() {
+func (d *Devnet) Start(l2ChainID *big.Int) {
 	clientTypes, err := d.T.Sim.ClientTypes()
 	if err != nil {
 		d.T.Fatal(err)
@@ -92,7 +94,8 @@ func (d *Devnet) Start() {
 	l1_rpc_url := fmt.Sprintf("http://%s:%d", d.L1.IP, d.L1.HTTPPort)
 	var deployerConfigOpt, deployerBundle hivesim.Params
 	deployerNodeOpts := hivesim.Params{
-		"HIVE_L1_RPC_URL": l1_rpc_url,
+		"HIVE_L1_RPC_URL":  l1_rpc_url,
+		"HIVE_L2_CHAIN_ID": l2ChainID.String(),
 	}
 	deployerOpts := hivesim.Bundle(deployerConfigOpt, deployerBundle, deployerNodeOpts)
 	opts = []hivesim.StartOption{deployerOpts}
@@ -124,8 +127,8 @@ func (d *Devnet) Cat(path string) (string, error) {
 	return execInfo.Stdout, nil
 }
 
-func (d *Devnet) InitL2() error {
-	genesisL2, err := d.Cat("/network-data/genesis-2151908.json")
+func (d *Devnet) InitL2(l2ChainID *big.Int) error {
+	genesisL2, err := d.Cat(fmt.Sprintf("/network-data/genesis-%s.json", l2ChainID.String()))
 	if err != nil {
 		return err
 	}
@@ -165,8 +168,8 @@ func (d *Devnet) StartL2() error {
 	return nil
 }
 
-func (d *Devnet) InitOp() error {
-	rollup, err := d.Cat("/network-data/rollup-2151908.json")
+func (d *Devnet) InitOp(l2ChainID *big.Int) error {
+	rollup, err := d.Cat(fmt.Sprintf("/network-data/rollup-%s.json", l2ChainID.String()))
 	if err != nil {
 		return err
 	}
@@ -195,7 +198,7 @@ func (d *Devnet) StartOp() error {
 		"HIVE_L2_HTTP_URL": fmt.Sprintf("http://%s:%d", d.L2.IP, d.L2.HTTPPort),
 	}
 
-	rollupOpt := hivesim.WithDynamicFile("/rollup-2151908.json", bytesSource([]byte(d.RollupJson)))
+	rollupOpt := hivesim.WithDynamicFile("/rollup.json", bytesSource([]byte(d.RollupJson)))
 	jwtsecretOpt := hivesim.WithDynamicFile("/jwtsecret", bytesSource([]byte(d.Jwtsecret)))
 	walletsOpt := hivesim.WithDynamicFile("/wallets.json", bytesSource([]byte(d.WalletsJson)))
 
