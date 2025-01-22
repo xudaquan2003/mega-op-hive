@@ -220,18 +220,15 @@ func (d *Devnet) StartBSS() error {
 	bss := d.Nodes["op-batcher"]
 
 	executionOpts := hivesim.Params{
-		"HIVE_CHECK_LIVE_PORT":  "0",
-		"HIVE_CATALYST_ENABLED": "1",
-		"HIVE_LOGLEVEL":         os.Getenv("HIVE_LOGLEVEL"),
-		"HIVE_NODETYPE":         "full",
+		"HIVE_CHECK_LIVE_PORT": "0",
 
-		"HIVE_L1_ETH_RPC_FLAG": fmt.Sprintf("--l1-eth-rpc=http://%s:%d", d.L1.IP, d.L1.HTTPPort),
-		"HIVE_L2_ETH_RPC_FLAG": fmt.Sprintf("--l2-eth-rpc=http://%s:%d", d.L2.IP, d.L2.HTTPPort),
-		"HIVE_ROLLUP_RPC_FLAG": fmt.Sprintf("--rollup-rpc=http://%s:%d", d.Rollup.IP, d.Rollup.HTTPPort),
+		"HIVE_L1_HTTP_URL":     fmt.Sprintf("http://%s:%d", d.L1.IP, d.L1.HTTPPort),
+		"HIVE_L2_HTTP_URL":     fmt.Sprintf("http://%s:%d", d.L2.IP, d.L2.HTTPPort),
+		"HIVE_ROLLUP_HTTP_URL": fmt.Sprintf("http://%s:%d", d.Rollup.IP, d.Rollup.HTTPPort),
 	}
 
-	optimismPortalOpt := hivesim.WithDynamicFile("/OptimismPortalProxy.json", bytesSource([]byte(d.OptimismPortal)))
-	opts := []hivesim.StartOption{executionOpts, optimismPortalOpt}
+	walletsOpt := hivesim.WithDynamicFile("/wallets.json", bytesSource([]byte(d.WalletsJson)))
+	opts := []hivesim.StartOption{executionOpts, walletsOpt}
 	d.Batcher = &BSSNode{d.T.StartClient(bss.Name, opts...)}
 	return nil
 }

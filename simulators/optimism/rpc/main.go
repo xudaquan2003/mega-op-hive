@@ -176,7 +176,7 @@ func runAllTests(t *hivesim.T) {
 	d.InitOp()
 	d.StartOp()
 	// d.StartL2OS()
-	// d.StartBSS()
+	d.StartBSS()
 
 	time.Sleep(3 * time.Minute)
 
