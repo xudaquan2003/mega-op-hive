@@ -133,7 +133,7 @@ func (d *Devnet) InitL2(l2ChainID *big.Int) error {
 		return err
 	}
 	d.GenesisL2 = genesisL2
-	d.T.Logf("genesisL2:\n %s", genesisL2)
+	// d.T.Logf("genesisL2:\n %s", genesisL2)
 
 	jwtsecret, err := d.Cat("/jwt/jwtsecret")
 	if err != nil {
@@ -174,14 +174,14 @@ func (d *Devnet) InitOp(l2ChainID *big.Int) error {
 		return err
 	}
 	d.RollupJson = rollup
-	d.T.Logf("RollupJson:\n %s", rollup)
+	// d.T.Logf("RollupJson:\n %s", rollup)
 
 	wallets, err := d.Cat("/network-data/wallets.json")
 	if err != nil {
 		return err
 	}
 	d.WalletsJson = wallets
-	d.T.Logf("WalletsJson:\n %s", wallets)
+	// d.T.Logf("WalletsJson:\n %s", wallets)
 	return nil
 }
 
