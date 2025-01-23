@@ -2,7 +2,7 @@
 set -exu
 
 if [ -f /genesis_account.json ]; then
-    jq -s '.[0].alloc=([.[].alloc]|flatten)|.[0]' /genesis.json  /genesis_account.json > /genesis_tmp.json
+    jq -s '.[0] * .[1]' /genesis_account.json /genesis.json  > /genesis_tmp.json
     mv /genesis_tmp.json /genesis.json
 fi
 
