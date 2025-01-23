@@ -12,9 +12,9 @@ RUN /usr/local/bin/op-reth --version > /version.txt
 
 VOLUME ["/db"]
 
-EXPOSE 9545/tcp
-EXPOSE 9546/tcp
-EXPOSE 9551/tcp
+EXPOSE 8545/tcp
+EXPOSE 8546/tcp
+EXPOSE 8551/tcp
 
 ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
 

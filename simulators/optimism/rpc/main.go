@@ -182,6 +182,7 @@ func runAllTests(t *hivesim.T) {
 	d.StartBSS()
 
 	// time.Sleep(3 * time.Minute)
+	d.T.Logf("L2.Client.HTTP_URL:\n %s", d.L2.Client.RPC())
 
 	vault := newVault()
 

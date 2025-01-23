@@ -8,7 +8,7 @@ var (
 
 	L2_HTTP_PORT = uint16(8545)
 	L2_WS_PORT   = uint16(8546)
-	L2_AUTH_PORT = uint16(9551)
+	L2_AUTH_PORT = uint16(8551)
 
 	OP_HTTP_PORT = uint16(8547)
 )
