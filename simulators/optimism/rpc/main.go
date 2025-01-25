@@ -181,8 +181,8 @@ func runAllTests(t *hivesim.T) {
 	// d.StartL2OS()
 	d.StartBSS()
 
-	// time.Sleep(3 * time.Minute)
-	d.T.Logf("L2.Client.HTTP_URL:\n %s", d.L2.Client.RPC())
+	// time.Sleep(10 * time.Second)
+	d.T.Logf("L2.Client.HTTP_URL:\n %s\n", fmt.Sprintf("http://%v:%d", d.L2.Client.IP, d.L2.HTTPPort))
 
 	vault := newVault()
 

@@ -1,4 +1,4 @@
-FROM megaeth-labs/devnet/op-reth:latest AS base
+FROM megaeth-labs/testnet-all/op-reth:latest AS base
 
 RUN apt-get update && apt-get install -y jq
 
@@ -12,9 +12,9 @@ RUN echo "v0.0.0" > /version.txt
 
 VOLUME ["/db"]
 
-EXPOSE 9545/tcp
-EXPOSE 9546/tcp
-EXPOSE 9551/tcp
+EXPOSE 8545/tcp
+EXPOSE 8546/tcp
+EXPOSE 8551/tcp
 
 ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
 
