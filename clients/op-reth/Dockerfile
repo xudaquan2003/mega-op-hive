@@ -1,5 +1,7 @@
 FROM ghcr.io/paradigmxyz/op-reth:latest AS base
 
+RUN apt-get update && apt-get install -y jq
+
 # Inject the startup script
 ADD entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
@@ -9,9 +11,9 @@ RUN /usr/local/bin/op-reth --version | sed -e 's/reth-optimism-cli \(.*\)/\1/' >
 
 VOLUME ["/db"]
 
-EXPOSE 9545/tcp
-EXPOSE 9546/tcp
-EXPOSE 9551/tcp
+EXPOSE 8545/tcp
+EXPOSE 8546/tcp
+EXPOSE 8551/tcp
 
 ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
 
