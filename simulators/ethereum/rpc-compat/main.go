@@ -49,7 +49,7 @@ conformance with the execution API specification.`[1:],
 		Parameters:  clientEnv,
 		Files:       files,
 		Run: func(t *hivesim.T, c *hivesim.Client) {
-			sendForkchoiceUpdated(t, c)
+			//sendForkchoiceUpdated(t, c)
 			runAllTests(t, c, c.Type)
 		},
 		AlwaysRun: true,
